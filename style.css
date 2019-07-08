@@ -1,0 +1,63 @@
+/*
+Copyright 2019 Joyce Emanuele, Wellington Cesar
+This file is part of Chomsky.
+ */
+
+html, body {
+	margin  : 0;
+	padding : 0;
+}
+
+form {
+	margin-left : 50px;
+}
+
+textarea {
+	margin-left : 20px;
+	left        : 20px;
+	width       : 40%;
+	height      : 450px;
+	padding     : 10px;
+	border      : 3px solid #8ebf42;
+	box-shadow  : 5px 5px 5px rgba(0, 0, 0, 0.5);
+}
+
+textarea#det {
+	cursor : grab;
+}
+
+textarea#nde:hover {
+	background : #dddddd;
+}
+
+button {
+	background-color : #4CAF50;
+	border           : none;
+	color            : white;
+	padding          : 15px 32px;
+	text-align       : center;
+	text-decoration  : none;
+	display          : inline-block;
+	font-size        : 16px;
+	size             : 20px;
+	cursor           : pointer;
+	border-radius    : 1em;
+	position         : absolute;
+	margin           : 20px 30%;
+	width            : 36%;
+	height           : 50px
+}
+
+h1 {
+	margin-left : 20px;
+	font-family : sans-serif;
+	font-size   : large;
+}
+
+h2 {
+	font-family : sans-serif;
+	font-size   : large;
+	position    : absolute;
+	top         : -3px;
+	left        : 48%;
+}
