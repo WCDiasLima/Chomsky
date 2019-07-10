@@ -27,7 +27,10 @@ function setup() {
 
 function traduzir() {
 	G = JSON.parse(entrada.value);
+	G = epsilon(G);
+	producao_unitaria();
 	G = inuteis(G);
+	ch();
 	saida.value = JSON.stringify(G, null, "\t");
 }
 function epsilon(gram) {
@@ -69,7 +72,6 @@ function epsilon(gram) {
 			let dir = e.dir.copy();
 			for (let j = a.length - 1; j >= 0; j--) {//Para cada bit
 				if ((i & Math.pow(2, j)) === 0) {
-					console.log(dir + " -> " + dir.rem(a[j]));
 					dir = dir.rem(a[j]);
 				}
 			}
@@ -77,7 +79,6 @@ function epsilon(gram) {
 			else if (e.esq === C.inicial) C.regras.push({ "esq": e.esq, "dir": "ε" });
 		}
 	}
-	console.log(C);
 	return C;
 }
 function inuteis(gram) {
@@ -107,14 +108,13 @@ function inuteis(gram) {
 		if (!vGeradores.has(e.esq)) continue;
 		let g = true;
 		for (let f of e.dir) {
-			if (!vGeradores.has(f) && !gram.terminais.includes(f)) {
+			if (!vGeradores.has(f) && !gram.terminais.includes(f) && f !== 'ε') {
 				g = false;
 				break;
 			}
 		}
 		if (g) C1.regras.push({ "esq": e.esq, "dir": e.dir });
 	}
-	console.log(C1);
 
 	let vAlcancaveis = new Set(C1.inicial);
 	let tAlcancaveis = new Set();
@@ -124,13 +124,12 @@ function inuteis(gram) {
 		for (let e of C1.regras) { //Para cada regra
 			if (!vAlcancaveis.has(e.esq)) continue;
 			for (let i of e.dir) {
-				if(C1.variaveis.includes(i)) vAlcancaveis.add(i);
+				if (C1.variaveis.includes(i)) vAlcancaveis.add(i);
 				else tAlcancaveis.add(i);
 			}
 		}
 	} while (antV !== vAlcancaveis.size || antT !== tAlcancaveis.size);
-	console.log(vAlcancaveis)
-	
+
 	let C2 = {
 		"variaveis": [...vAlcancaveis],
 		"terminais": [...tAlcancaveis],
@@ -152,59 +151,28 @@ function inuteis(gram) {
 	return C2;
 }
 
-/*let G = {
-	"variaveis": [
-		"A",
-		"B",
-		"C",
-		"D"
-	],
-	"terminais": [
-		"a",
-		"b",
-		"c"
-	],
-	"inicial": "A",
-	"regras": [
-		{
-			"esq": "A",
-			"dir": "ca"
-		},
-		{
-			"esq": "B",
-			"dir": "b"
-		},
-		{
-			"esq": "C",
-			"dir": "ABD"
-		},
-		{
-			"esq": "D",
-			"dir": "BBD"
-		}
-	]
-}*/
-
 function producao_unitaria() {
 	var variaveis = new Set(G.variaveis);
-	var aux = 1, k;
+	var aux = true, k;
 	while (aux) {
-		aux = 0; k = 0;
+		aux = false; k = 0;
 		for (let i of G.regras) {
-			if (i.dir.length == 1 && variaveis.has(i.dir)) {
-				aux = 1;
+			if (i.dir === i.esq)
+				G.regras.splice(k, 1);
+			else if (i.dir.length === 1 && variaveis.has(i.dir)) {
+				aux = true;
 				for (let j of G.regras) {
-					if (j.esq == i.dir) {
+					if (j.esq === i.dir) {
 						G.regras.push({ "esq": i.esq, "dir": j.dir });
 					}
 				}
 				G.regras.splice(k, 1);
-			} k++;
+			}
+			k++;
 		}
 	}
 }
 
-var geradores_var = ['α', ' β', 'γ', 'δ', 'ζ', 'η', 'θ', 'Ϸ', 'λ', 'Σ', 'Ω', 'Δ', 'Λ', 'μ', 'π', 'σ', 'φ', 'ψ', 'ω', 'א', 'ב', 'ג', 'ש', '该', '大', '号', 'и', 'Я'];
 
 function ch() {
 	troca_terminais();
@@ -214,31 +182,23 @@ function ch() {
 function troca_terminais() {
 	var terminais = new Set(G.terminais);
 	for (let i of G.regras) {
-		if (i.dir.length > 1) {
-			for (let j = 0; j < i.dir.length; j++) {
-				if (terminais.has(i.dir[j])) {
-					var existe = verifica(i.dir[j]);
-					if (existe) {
-						i.dir = i.dir.replace(i.dir[j], existe.esq);
-					}
-					else {
-						var vari = geradores_var.pop();
-						G.regras.push({ "esq": vari, "dir": i.dir[j] });
-						G.variaveis.push(vari);
-						i.dir = i.dir.replace(i.dir[j], vari);
-					}
-				}
+		if (i.dir.length === 1) continue;
+		for (let j = 0; j < i.dir.length; j++) {
+			if (!terminais.has(i.dir[j])) continue;
+			let existe = verifica(i.dir[j]);
+			if (existe) {
+				i.dir = i.dir.replace(i.dir[j], existe.esq);
 			}
+			else {
+				var vari = geradores_var.pop();
+				G.regras.push({ "esq": vari, "dir": i.dir[j] });
+				G.variaveis.push(vari);
+				i.dir = i.dir.replace(i.dir[j], vari);
+			}
+
 		}
 
 	}
-}
-
-function verifica(aux) {
-	for (let i of G.regras) {
-		if (i.dir === aux) return i;
-	}
-	return 0;
 }
 
 function tamanho2() {
@@ -253,7 +213,7 @@ function tamanho2() {
 					i.dir = i.dir.replace(i.dir.slice(1), existe.esq);
 				}
 				else {
-					var vari = geradores_var.pop();
+					let vari = geradores_var.pop();
 					G.regras.push({ "esq": vari, "dir": i.dir.slice(1) });
 					i.dir = i.dir.replace(i.dir.slice(1), vari);
 					G.variaveis.push(vari);
