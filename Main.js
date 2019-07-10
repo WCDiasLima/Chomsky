@@ -18,7 +18,7 @@
  */
 
 let entrada, saida;
-let C;
+let G;
 
 function setup() {
 	entrada = document.getElementById('nde');
@@ -27,11 +27,132 @@ function setup() {
 
 function traduzir() {
 	G = JSON.parse(entrada.value);
-	C = G;
-	saida.value = JSON.stringify(C, null, "\t");
+	G = inuteis(G);
+	saida.value = JSON.stringify(G, null, "\t");
+}
+function epsilon(gram) {
+	let C = {
+		"variaveis": gram.variaveis,
+		"terminais": gram.terminais,
+		"inicial": gram.inicial,
+		"regras": []
+	}
+	let anulaveis = new Set();
+
+	let ant;
+	do { //Achar os símbolos anuláveis
+		ant = anulaveis.size;
+		for (let e of gram.regras) {
+			if (e.dir === "ε") anulaveis.add(e.esq);
+			else {
+				let fica = false;
+				for (let f of e.dir) {
+					if (!anulaveis.has(f)) {
+						fica = true;
+						break;
+					}
+				}
+				if (!fica) {
+					anulaveis.add(e.esq);
+				}
+			}
+		}
+	} while (ant !== anulaveis.size);
+
+	for (let e of gram.regras) {//Para cada regra
+		if (e.dir === "ε") continue;
+		let a = [];
+		for (let i = 0; i < e.dir.length; i++) {//Contar o nº de anuláveis nessa regra
+			if (anulaveis.has(e.dir[i])) a.push(i);
+		}
+		for (let i = 0; i < Math.pow(2, a.length); i++) {//Combinações
+			let dir = e.dir.copy();
+			for (let j = a.length - 1; j >= 0; j--) {//Para cada bit
+				if ((i & Math.pow(2, j)) === 0) {
+					console.log(dir + " -> " + dir.rem(a[j]));
+					dir = dir.rem(a[j]);
+				}
+			}
+			if (dir !== "") C.regras.push({ "esq": e.esq, "dir": dir });
+			else if (e.esq === C.inicial) C.regras.push({ "esq": e.esq, "dir": "ε" });
+		}
+	}
+	console.log(C);
+	return C;
+}
+function inuteis(gram) {
+	let vGeradores = new Set();
+	let ant;
+	do { //Encontrar os símbolos geradores
+		ant = vGeradores.size;
+		for (let e of gram.regras) { //Para cada regra
+			let g = true;
+			for (let i of e.dir) {
+				if (!vGeradores.has(i) && !gram.terminais.includes(i)) {
+					g = false;
+					break;
+				}
+			}
+			if (g || e.dir === "ε") vGeradores.add(e.esq);
+		}
+	} while (ant !== vGeradores.size);
+
+	let C1 = {
+		"variaveis": [...vGeradores],
+		"terminais": gram.terminais,
+		"inicial": gram.inicial,
+		"regras": []
+	}//Cria nova gramática sem não geradores
+	for (let e of gram.regras) {
+		if (!vGeradores.has(e.esq)) continue;
+		let g = true;
+		for (let f of e.dir) {
+			if (!vGeradores.has(f) && !gram.terminais.includes(f)) {
+				g = false;
+				break;
+			}
+		}
+		if (g) C1.regras.push({ "esq": e.esq, "dir": e.dir });
+	}
+	console.log(C1);
+
+	let vAlcancaveis = new Set(C1.inicial);
+	let tAlcancaveis = new Set();
+	do { //Encontrar os símbolos alcançáveis
+		antV = vAlcancaveis.size;
+		antT = tAlcancaveis.size;
+		for (let e of C1.regras) { //Para cada regra
+			if (!vAlcancaveis.has(e.esq)) continue;
+			for (let i of e.dir) {
+				if(C1.variaveis.includes(i)) vAlcancaveis.add(i);
+				else tAlcancaveis.add(i);
+			}
+		}
+	} while (antV !== vAlcancaveis.size || antT !== tAlcancaveis.size);
+	console.log(vAlcancaveis)
+	
+	let C2 = {
+		"variaveis": [...vAlcancaveis],
+		"terminais": [...tAlcancaveis],
+		"inicial": C1.inicial,
+		"regras": []
+	}//Cria nova gramática sem não alcançáveis
+	for (let e of C1.regras) {
+		if (!vAlcancaveis.has(e.esq)) continue;
+		let g = true;
+		for (let f of e.dir) {
+			if (!vAlcancaveis.has(f) && !tAlcancaveis.has(f)) {
+				g = false;
+				break;
+			}
+		}
+		if (g) C2.regras.push({ "esq": e.esq, "dir": e.dir });
+	}
+
+	return C2;
 }
 
-let G = {
+/*let G = {
 	"variaveis": [
 		"A",
 		"B",
@@ -62,7 +183,7 @@ let G = {
 			"dir": "BBD"
 		}
 	]
-}
+}*/
 
 function producao_unitaria() {
 	var variaveis = new Set(G.variaveis);
