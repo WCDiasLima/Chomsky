@@ -75,8 +75,10 @@ function epsilon(gram) {
 					dir = dir.rem(a[j]);
 				}
 			}
-			if (dir !== "") C.regras.push({ "esq": e.esq, "dir": dir });
-			else if (e.esq === C.inicial) C.regras.push({ "esq": e.esq, "dir": "ε" });
+			let nDir;
+			if (dir !== "") nDir = dir;
+			else if (e.esq === C.inicial) nDir = 'ε';
+			if(nDir && !C.regras.temRegra({ "esq": e.esq, "dir": nDir })) C.regras.push({ "esq": e.esq, "dir": nDir });
 		}
 	}
 	return C;
@@ -147,7 +149,6 @@ function inuteis(gram) {
 		}
 		if (g) C2.regras.push({ "esq": e.esq, "dir": e.dir });
 	}
-
 	return C2;
 }
 
@@ -202,23 +203,23 @@ function troca_terminais() {
 }
 
 function tamanho2() {
-	var aux = 1;
+	var aux = true;
 	while (aux) {
-		aux = 0;
+		aux = false;
 		for (let i of G.regras) {
-			if (i.dir.length > 2) {
-				aux = 1;
-				var existe = verifica(i.dir.slice(1));
-				if (existe) {
-					i.dir = i.dir.replace(i.dir.slice(1), existe.esq);
-				}
-				else {
-					let vari = geradores_var.pop();
-					G.regras.push({ "esq": vari, "dir": i.dir.slice(1) });
-					i.dir = i.dir.replace(i.dir.slice(1), vari);
-					G.variaveis.push(vari);
-				}
+			if (i.dir.length <= 2) continue;
+			aux = true;
+			var existe = verifica(i.dir.slice(1));
+			if (existe) {
+				i.dir = i.dir.replace(i.dir.slice(1), existe.esq);
 			}
+			else {
+				let vari = geradores_var.pop();
+				G.regras.push({ "esq": vari, "dir": i.dir.slice(1) });
+				i.dir = i.dir.replace(i.dir.slice(1), vari);
+				G.variaveis.push(vari);
+			}
+
 		}
 	}
 }
