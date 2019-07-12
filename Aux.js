@@ -6,18 +6,18 @@ String.prototype.rem = function (n) { //Romeve char na nª posição
 String.prototype.copy = function() { //Retorna uma cópia de si
     return (' ' + this).slice(1);
 }
-Array.prototype.temRegra = function(regra) { //Retorno se o vetor possui aquela regra
+Array.prototype.temRegra = function(regra) { //Retorna se o vetor possui aquela regra
     for(let e of this) {
         if(e.esq === regra.esq && e.dir === regra.dir) return true;
     }
     return false;
 }
 
-function verifica(aux) {
-	for (let i of G.regras) {
+function verifica(aux, gram) {
+	for (let i of gram.regras) {
 		var k = true;
 		if (i.dir === aux) {
-			for (let j of G.regras) {
+			for (let j of gram.regras) {
 				if (j.esq == i.esq && j.dir !== aux) {
 					k = false;
 					break;

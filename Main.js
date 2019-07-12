@@ -28,22 +28,14 @@ function setup() {
 function traduzir() {
 	indice = 0;
 	G = JSON.parse(entrada.value);
-	G = epsilon(G);
-	producao_unitaria();
-	G = inuteis(G);
-	ch();
+	epsilon(G);
+	producao_unitaria(G);
+	inuteis(G);
+	ch(G);
 	saida.value = JSON.stringify(G, null, "\t");
 }
 function epsilon(gram) {
-	let C = {
-		"variaveis": gram.variaveis,
-		"terminais": gram.terminais,
-		"inicial": gram.inicial,
-		"regras": []
-	}
-	let anulaveis = new Set();
-
-	let ant;
+	let anulaveis = new Set(), ant, regras = [];
 	do { //Achar os símbolos anuláveis
 		ant = anulaveis.size;
 		for (let e of gram.regras) {
@@ -78,11 +70,11 @@ function epsilon(gram) {
 			}
 			let nDir;
 			if (dir !== "") nDir = dir;
-			else if (e.esq === C.inicial) nDir = 'ε';
-			if(nDir && !C.regras.temRegra({ "esq": e.esq, "dir": nDir })) C.regras.push({ "esq": e.esq, "dir": nDir });
+			else if (e.esq === gram.inicial) nDir = 'ε';
+			if (nDir && !regras.temRegra({ "esq": e.esq, "dir": nDir })) regras.push({ "esq": e.esq, "dir": nDir });
 		}
 	}
-	return C;
+	gram.regras = regras;
 }
 function inuteis(gram) {
 	let vGeradores = new Set();
@@ -101,12 +93,9 @@ function inuteis(gram) {
 		}
 	} while (ant !== vGeradores.size);
 
-	let C1 = {
-		"variaveis": [...vGeradores],
-		"terminais": gram.terminais,
-		"inicial": gram.inicial,
-		"regras": []
-	}//Cria nova gramática sem não geradores
+	//Cria nova gramática sem não geradores
+	gram.variaveis = [...vGeradores];
+	let regras = [];
 	for (let e of gram.regras) {
 		if (!vGeradores.has(e.esq)) continue;
 		let g = true;
@@ -116,30 +105,29 @@ function inuteis(gram) {
 				break;
 			}
 		}
-		if (g) C1.regras.push({ "esq": e.esq, "dir": e.dir });
+		if (g) regras.push({ "esq": e.esq, "dir": e.dir });
 	}
+	gram.regras = regras;
 
-	let vAlcancaveis = new Set(C1.inicial);
+	let vAlcancaveis = new Set(gram.inicial);
 	let tAlcancaveis = new Set();
 	do { //Encontrar os símbolos alcançáveis
 		antV = vAlcancaveis.size;
 		antT = tAlcancaveis.size;
-		for (let e of C1.regras) { //Para cada regra
+		for (let e of gram.regras) { //Para cada regra
 			if (!vAlcancaveis.has(e.esq)) continue;
 			for (let i of e.dir) {
-				if (C1.variaveis.includes(i)) vAlcancaveis.add(i);
+				if (gram.variaveis.includes(i)) vAlcancaveis.add(i);
 				else tAlcancaveis.add(i);
 			}
 		}
 	} while (antV !== vAlcancaveis.size || antT !== tAlcancaveis.size);
 
-	let C2 = {
-		"variaveis": [...vAlcancaveis],
-		"terminais": [...tAlcancaveis],
-		"inicial": C1.inicial,
-		"regras": []
-	}//Cria nova gramática sem não alcançáveis
-	for (let e of C1.regras) {
+	//Cria nova gramática sem não alcançáveis
+	gram.variaveis = [...vAlcancaveis];
+	gram.terminais = [...tAlcancaveis];
+	regras = [];
+	for (let e of gram.regras) {
 		if (!vAlcancaveis.has(e.esq)) continue;
 		let g = true;
 		for (let f of e.dir) {
@@ -148,27 +136,26 @@ function inuteis(gram) {
 				break;
 			}
 		}
-		if (g) C2.regras.push({ "esq": e.esq, "dir": e.dir });
+		if (g) regras.push({ "esq": e.esq, "dir": e.dir });
 	}
-	return C2;
+	gram.regras = regras;
 }
 
-function producao_unitaria() {
-	var variaveis = new Set(G.variaveis);
-	var aux = true, k;
-	while (aux) {
-		aux = false; k = 0;
-		for (let i of G.regras) {
+function producao_unitaria(gram) {
+	let repete = true, k;
+	while (repete) {
+		repete = false; k = 0;
+		for (let i of gram.regras) {
 			if (i.dir === i.esq)
-				G.regras.splice(k, 1);
-			else if (i.dir.length === 1 && variaveis.has(i.dir)) {
-				aux = true;
-				for (let j of G.regras) {
+				gram.regras.splice(k, 1);
+			else if (i.dir.length === 1 && gram.variaveis.includes(i.dir)) {
+				repete = true;
+				for (let j of gram.regras) {
 					if (j.esq === i.dir) {
-						G.regras.push({ "esq": i.esq, "dir": j.dir });
+						gram.regras.push({ "esq": i.esq, "dir": j.dir });
 					}
 				}
-				G.regras.splice(k, 1);
+				gram.regras.splice(k, 1);
 			}
 			k++;
 		}
@@ -176,51 +163,46 @@ function producao_unitaria() {
 }
 
 
-function ch() {
-	troca_terminais();
-	tamanho2();
+function ch(gram) {
+	troca_terminais(gram);
+	tamanho2(gram);
 }
 
-function troca_terminais() {
-	var terminais = new Set(G.terminais);
-	for (let i of G.regras) {
+function troca_terminais(gram) {
+	for (let i of gram.regras) {
 		if (i.dir.length === 1) continue;
 		for (let j = 0; j < i.dir.length; j++) {
-			if (!terminais.has(i.dir[j])) continue;
-			let existe = verifica(i.dir[j]);
+			if (!gram.terminais.includes(i.dir[j])) continue;
+			let existe = verifica(i.dir[j], gram);
 			if (existe) {
 				i.dir = i.dir.replace(i.dir[j], existe.esq);
 			}
 			else {
-				var vari = geradores_var[indice];
-				indice++;
-				G.regras.push({ "esq": vari, "dir": i.dir[j] });
-				G.variaveis.push(vari);
+				var vari = geradores_var[indice++];
+				gram.regras.push({ "esq": vari, "dir": i.dir[j] });
+				gram.variaveis.push(vari);
 				i.dir = i.dir.replace(i.dir[j], vari);
 			}
-
 		}
-
 	}
 }
 
-function tamanho2() {
+function tamanho2(gram) {
 	var aux = true;
 	while (aux) {
 		aux = false;
-		for (let i of G.regras) {
+		for (let i of gram.regras) {
 			if (i.dir.length <= 2) continue;
 			aux = true;
-			var existe = verifica(i.dir.slice(1));
+			var existe = verifica(i.dir.slice(1), gram);
 			if (existe) {
 				i.dir = i.dir.replace(i.dir.slice(1), existe.esq);
 			}
 			else {
-				let vari = geradores_var[indice];
-				indice++;
-				G.regras.push({ "esq": vari, "dir": i.dir.slice(1) });
+				let vari = geradores_var[indice++];
+				gram.regras.push({ "esq": vari, "dir": i.dir.slice(1) });
 				i.dir = i.dir.replace(i.dir.slice(1), vari);
-				G.variaveis.push(vari);
+				gram.variaveis.push(vari);
 			}
 		}
 	}
