@@ -18,7 +18,7 @@
  */
 
 let entrada, saida;
-let G;
+let G, indice;
 
 function setup() {
 	entrada = document.getElementById('nde');
@@ -26,6 +26,7 @@ function setup() {
 }
 
 function traduzir() {
+	indice = 0;
 	G = JSON.parse(entrada.value);
 	G = epsilon(G);
 	producao_unitaria();
@@ -191,7 +192,8 @@ function troca_terminais() {
 				i.dir = i.dir.replace(i.dir[j], existe.esq);
 			}
 			else {
-				var vari = geradores_var.pop();
+				var vari = geradores_var[indice];
+				indice++;
 				G.regras.push({ "esq": vari, "dir": i.dir[j] });
 				G.variaveis.push(vari);
 				i.dir = i.dir.replace(i.dir[j], vari);
@@ -214,12 +216,12 @@ function tamanho2() {
 				i.dir = i.dir.replace(i.dir.slice(1), existe.esq);
 			}
 			else {
-				let vari = geradores_var.pop();
+				let vari = geradores_var[indice];
+				indice++;
 				G.regras.push({ "esq": vari, "dir": i.dir.slice(1) });
 				i.dir = i.dir.replace(i.dir.slice(1), vari);
 				G.variaveis.push(vari);
 			}
-
 		}
 	}
 }
